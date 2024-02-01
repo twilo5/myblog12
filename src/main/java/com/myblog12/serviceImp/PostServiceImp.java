@@ -1,34 +1,38 @@
 package com.myblog12.serviceImp;
 
+
 import com.myblog12.entity.Post;
 import com.myblog12.exception.ResourceNotFoundException;
 import com.myblog12.payload.PostDto;
 import com.myblog12.repository.PostRepository;
 import com.myblog12.service.PostService;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.awt.print.Book;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImp implements PostService {
     private PostRepository postRepo;
+    private ModelMapper modelMapper;
 
-    public PostServiceImp(PostRepository postRepo) {
+    public PostServiceImp(PostRepository postRepo,ModelMapper modelMapper) {
         this.postRepo = postRepo;
+        this.modelMapper=modelMapper;
     }
 
     @Override
     public PostDto createPost(PostDto postDto) {
-       Post post = new Post();
-       post.setTittle(postDto.getTittle());
-       post.setDescription(postDto.getDescription());
-       post.setContent(postDto.getContent());
-        Post save = postRepo.save(post);
-        PostDto dto=new PostDto();
-       dto.setTittle(save.getTittle());
-       dto.setDescription(save.getDescription());
-       dto.setContent(save.getContent());
-       return dto;
+        Post post = mapToEntity(postDto);
+        Post savedPost = postRepo.save(post);
+        PostDto dto = mapToDto(savedPost);
+return  dto;
+
     }
 
     @Override
@@ -40,5 +44,23 @@ public class PostServiceImp implements PostService {
         dto.setDescription(post.getDescription());
         dto.setContent(post.getContent());
         return dto;
+    }
+
+    @Override
+    public List<PostDto> getAllPosts(int pageNo, int pageSize) {
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        Page<Post> pagePost = postRepo.findAll(pageable);
+        List<Post> posts = pagePost.getContent();
+        List<PostDto> dtos = posts.stream().map(post->mapToDto(post)).collect(Collectors.toList());
+        return dtos;
+    }
+    PostDto mapToDto(Post post){
+        PostDto dto=modelMapper.map(post,PostDto.class);
+        return dto;
+    }
+    Post mapToEntity(PostDto postDto){
+        Post post = modelMapper.map(postDto,Post.class);
+       return post;
     }
 }
